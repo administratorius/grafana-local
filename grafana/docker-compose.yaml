@@ -18,7 +18,7 @@ services:
     - "9009:9009"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana-enterprise:latest
     volumes:
     - ./datasource/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
     ports:
