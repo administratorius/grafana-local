@@ -8,42 +8,48 @@
 version: "3.5"
 services:
   cortex:
-    image: quay.io/cortexproject/cortex:latest
+    image: quay.io/cortexproject/cortex:v1.9.0
     volumes:
-    - ./config:/etc/config
+    - ./config/single_process_cortex.yaml:/etc/config/single_process_cortex.yaml
     entrypoint:
     - /bin/cortex
-    - -config.file=/etc/config/single-process-config.yaml
+    - -config.file=/etc/config/single_process_cortex.yaml
     ports:
     - "9009:9009"
-    environment:
-    - JAEGER_AGENT_HOST=jaeger
-    - JAEGER_AGENT_PORT=6831
-    - JAEGER_SAMPLER_TYPE=const
-    - JAEGER_SAMPLER_PARAM=1
+
   grafana:
     image: grafana/grafana:latest
     volumes:
-    - ./datasource:/etc/grafana/provisioning/datasources
+    - ./datasource/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
     ports:
     - "3000:3000"
     # extra_hosts:
     # - "cortex:<host ip>"
-  prometheus:
-    image: prom/prometheus:latest
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+
+  agent:
+    image: grafana/agent:latest
     volumes:
-    - ./config:/etc/config
+      - ./config/agent.yaml:/etc/agent-config/agent.yaml
     entrypoint:
-    - /bin/prometheus
-    - --config.file=/etc/config/prometheus.yaml
+      - /bin/grafana-agent
+      - -server.http.address=0.0.0.0:12345
+      - -config.file=/etc/agent-config/agent.yaml
+      - -metrics.wal-directory=/tmp/agent/wal
+      - -enable-features=integrations-next
+      - -config.expand-env
+      - -config.enable-read-api
+    environment:
+      HOSTNAME: agent
+      REMOTE_WRITE_HOST: cortex:9009
     ports:
-    - "9090:9090"
-    # extra_hosts:
-    # - "cortex:<host ip>"
-  jaeger:
-    image: jaegertracing/all-in-one:latest
+      - "12345:12345"
+
+  dummy-exporter:
+    image: kobtea/dummy_exporter
+    volumes:
+    - ./config/dummy_exporter.yml:/etc/agent-config/dummy_exporter.yml
     ports:
-      - "16686:16686"
-      - "6831:6831"
-  test-exporter:
-    image: quay.io/cortexproject/test-exporter
+      - "9510:9510"

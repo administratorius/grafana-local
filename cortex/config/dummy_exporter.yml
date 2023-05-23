@@ -1,0 +1,10 @@
+metrics:
+- name: foo
+  type: counter
+  size: 1
+- name: bar
+  type: gauge
+  size: 5
+  labels:
+    l1: [one, two, three]
+    l2: [aaa]
